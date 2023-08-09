@@ -1,0 +1,398 @@
+---
+title: "DSF coursework"
+output:
+  word_document: default
+  html_document: default
+date: "2022-12-12"
+---
+
+```{r}
+rm(list = ls())
+# find work directory
+getwd()
+# set work directory
+setwd("C:/Users/jqizh/Desktop/Lectures soton/5 STAT6114 Data Science Foundations/Coursework")
+library(haven)
+library(ISLR)
+library(tidyverse)
+# load the packages "leaps"
+library(leaps)
+# load data
+library(readxl)
+wimd_dataset <- read_excel("wimd_data.xlsx")
+View(wimd_dataset)
+```
+
+
+##Part A
+#question 1
+
+```{r}
+# see the head lines of data
+head(wimd_dataset)
+# descriptive analysis of data
+summary(wimd_dataset)
+#利用head查看数据的前6列数据，summary函数查看各个变量的最值，中值，均值和四分位数，对数据的分布有数值了解
+```
+
+因为数据中包括了连续变量和分类变量，我将使用histogram和density图来看连续变量的分布情况，并利用boxplot来看连续变量和分类变量之间的关系。
+```{r}
+# generate histograms among variables
+wimd_dataset %>% ggplot(aes(x = V1)) + geom_histogram(binwidth = 1) + labs(x = "People in income deprivation (%)")
+wimd_dataset %>% ggplot(aes(x = V2)) + geom_histogram(binwidth = 1) + labs(x = "Working-age people in employment deprivation (%)")
+wimd_dataset %>% ggplot(aes(x = V3)) + geom_histogram(binwidth = 0.5) + labs(x = "GP-recorded chronic condition (rate per 100)")
+wimd_dataset %>% ggplot(aes(x = V4)) + geom_histogram(binwidth = 0.5) + labs(x = "Limiting long-term illness (rate per 100 population) ")
+wimd_dataset %>% ggplot(aes(x = V5)) + geom_histogram(binwidth = 15) + labs(x = "Premature death (rate per 100,000 population) ")
+wimd_dataset %>% ggplot(aes(x = V6)) + geom_histogram(binwidth = 1) + labs(x = "GP-recorded mental health condition (rate per 100 population)")
+wimd_dataset %>% ggplot(aes(x = V7)) + geom_histogram(binwidth = 7) + labs(x = "Cancer incidence (rate per 100,000 population)")
+wimd_dataset %>% ggplot(aes(x = V8)) + geom_histogram(binwidth = 0.5) + labs(x = "Low birth weight (live single births less than 2.5kg) (%)")
+wimd_dataset %>% ggplot(aes(x = V9)) + geom_histogram(binwidth = 0.5) + labs(x = "Children aged 4-5 who are obese (%)")
+```
+
+
+```{r}
+# create desity plots of variables
+wimd_dataset %>% ggplot(aes(x = V1)) + geom_density(fill = "light seagreen") +geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "People in income deprivation (%)")# removing the border of the density polygon 
+wimd_dataset %>% ggplot(aes(x = V2)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "Working-age people in employment deprivation (%)")
+wimd_dataset %>% ggplot(aes(x = V3)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "GP-recorded chronic condition (rate per 100)")
+wimd_dataset %>% ggplot(aes(x = V4)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "Limiting long-term illness (rate per 100 population) ")
+wimd_dataset %>% ggplot(aes(x = V5)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "Premature death (rate per 100,000 population) ")
+wimd_dataset %>% ggplot(aes(x = V6)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "GP-recorded mental health condition (rate per 100 population)")
+wimd_dataset %>% ggplot(aes(x = V7)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "Cancer incidence (rate per 100,000 population)")
+wimd_dataset %>% ggplot(aes(x = V8)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "Low birth weight (live single births less than 2.5kg) (%)")
+wimd_dataset %>% ggplot(aes(x = V9)) + geom_density(fill = "light seagreen")+geom_rug(size = 1, colour = "light seagreen") + theme_minimal() + labs(x = "Children aged 4-5 who are obese (%)")
+```
+
+对每一个变量画直方图和desity plots，进一步观察每一个变量的分布情况。
+可以看到在大部分local authorities有5-20%的人People in income deprivation，少数地区存在高达35%人People in income deprivation。关于失业情况，大部分地区的失业率在约5-15%之间。结合原始数据，Denbighshire地区存在最高的失业率，高达27%。chronic condition (rate per 100)的比例在各个地区中分布较集中，大部分分布在11-15%之间。V4 Limiting long-term illness (rate per 100 population)的比例主要15-25%之间，最多集中于17-18%之间，最高可达18%。各个地区过早死亡的人数集中在400人以下。直方图显示，各个地区20-25%的人处于mental health condition，而
+Denbighshire地区拥有最高的mental health condition比例，高达38%。在大部分地区，10万人中普遍有550-650人患有癌症。而婴儿出生体重小于2.5kg的概率为4-6%，在大部分地区，只有1
+Wrexham的概率最高，高达9.8%。4-5岁肥胖儿童的比例集中在9-14%之间。
+```{r}
+# create boxplots
+wimd_dataset %>% ggplot(aes(x = V1, y = LA, fill = V1)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "People in income deprivation (%)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V2, y = LA, fill = V2)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "Working-age people in employment deprivation (%)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V3, y = LA, fill = V3)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "GP-recorded chronic condition (rate per 100)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V4, y = LA, fill = V4)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "Limiting long-term illness (rate per 100 population)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V5, y = LA, fill = V5)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "Premature death (rate per 100,000 population)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V6, y = LA, fill = V6)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "GP-recorded mental health condition (rate per 100 population) ",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V7, y = LA, fill = V7)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "Cancer incidence (rate per 100,000 population)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V8, y = LA, fill = V8)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "Low birth weight (live single births less than 2.5kg) (%)",
+       y = "local authorities")
+wimd_dataset %>% ggplot(aes(x = V9, y = LA, fill = V9)) + geom_boxplot(fill = "white", colour = "#3366FF") + theme_minimal() +
+  labs(x = "Children aged 4-5 who are obese (%)",
+       y = "local authorities")
+```
+利用boxplot函数去看不同local authorities在几个变量之间的差异。平均而言，Powys在所有变量中均处于最低值或最低比例。
+除此之外，Finstshire拥有较低的People in income deprivation 比例和Working-age people in employment deprivation (%)，分别为约10%和6%。Denbighshire地区的平均chronic condition (rate per 100)比例最高，平均在14%之间，且波动程度大。关于limiting long-term illness和Premature death ，Wrexham地区的rate最高，约22.5%和400人。而在Denbighshire地区的 GP-recorded mental health condition (rate per 100 population)平均为27%，在所有地区中最高。癌症发生率最高的是Wrexham和Flintshire地区，10万人中接近650人会患上癌症。Wrexham地区出生的婴儿出现低体重的情况的可能性最高，约6%，比例最高的地方甚至接近10%。4-5岁儿童肥胖率最高的地区是Isle of Anglesey和Gwynedd约13.5%。
+```{r}
+# create bar plots
+wimd_dataset %>% mutate(V1 = as.factor(V1)) %>% ggplot(aes(x = V1)) + 
+  geom_bar() + # geom_bar() automatically create bas base on data
+  theme_minimal()
+wimd_dataset %>% mutate(V2 = as.factor(V2)) %>% ggplot(aes(x = V2)) + geom_bar() +theme_minimal()
+#V3-V9 is not suitable to analysis by bar plot
+wimd_dataset %>% mutate(V3 = as.factor(V3)) %>% ggplot(aes(x = V3)) + geom_bar() +theme_minimal()
+wimd_dataset %>% mutate(V4 = as.factor(V4)) %>% ggplot(aes(x = V4)) + geom_bar() +theme_minimal()
+wimd_dataset %>% mutate(V5 = as.factor(V5)) %>% ggplot(aes(x = V5)) + geom_bar() +theme_minimal()
+wimd_dataset %>% mutate(V6 = as.factor(V6)) %>% ggplot(aes(x = V6)) + geom_bar() +theme_minimal()
+wimd_dataset %>% mutate(V7 = as.factor(V7)) %>% ggplot(aes(x = V7)) + geom_bar() +theme_minimal()
+wimd_dataset %>% mutate(V8 = as.factor(V8)) %>% ggplot(aes(x = V8)) + geom_bar() +theme_minimal()
+wimd_dataset %>% mutate(V9 = as.factor(V9)) %>% ggplot(aes(x = V9)) + geom_bar() +theme_minimal()
+```
+```{r}
+# create line plots
+wimd_dataset %>% ggplot(aes(x = V1, y = V2)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Working-age people in employment deprivation (%)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V3)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "GP-recorded chronic condition (rate per 100)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V4)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Limiting long-term illness (rate per 100 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V5)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Premature death (rate per 100,000 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V6)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "GP-recorded mental health condition (rate per 100 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V7)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Cancer incidence (rate per 100,000 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V8)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Low birth weight (live single births less than 2.5kg) (%)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V9)) + geom_line(colour = "#00008b", size = 1) + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Children aged 4-5 who are obese (%)")
+```
+```{r}
+# create scatterplots 
+wimd_dataset %>% ggplot(aes(x = V1, y = V2)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Working-age people in employment deprivation (%)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V3)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "GP-recorded chronic condition (rate per 100)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V4)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Limiting long-term illness (rate per 100 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V5)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Premature death (rate per 100,000 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V6)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "GP-recorded mental health condition (rate per 100 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V7)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Cancer incidence (rate per 100,000 population)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V8)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Low birth weight (live single births less than 2.5kg) (%)")
+wimd_dataset %>% ggplot(aes(x = V1, y = V9)) +geom_point() + theme_minimal() +
+  labs(y = "People in income deprivation (%)",
+       x = "Children aged 4-5 who are obese (%)")
+```
+
+
+#question 2
+```{r}
+library(ISLR)
+library(tidyverse)
+```
+```{r}
+
+# to see the columns' name in dataset
+names(wimd_dataset)
+# to see whether any data is lost
+table(is.na(wimd_dataset))
+
+# load the packages "leaps"
+library("leaps")
+
+# set up seed
+set.seed(2022)
+# split the dataset into two halves
+train <- sample(c(TRUE,FALSE),nrow(wimd_dataset),rep=TRUE)
+test <- (!train)
+
+# create the best subset selection
+fit_reg <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset[train,],nvmax=8)
+# generate test matrix
+test_matrix <- model.matrix(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset[test,])
+```
+
+
+```{r}
+# create a empty rep to contain test MSE
+val_errors <- rep(NA,8)
+
+for(i in 1:8){
+  coefi <- coef(fit_reg,id=3) # extract the coefficients from model with different sizes
+  pred <- test_matrix[,names(coefi)]%*%coefi
+  # make predictions by multiplying the test matirx and the coefficients vector
+  val_errors[i] <- mean((wimd_dataset$V1[test]-pred)^2) # compute the test MSE
+}
+
+val_errors
+which.min(val_errors)
+coef(fit_reg,1)# so the 3-variables model is the best
+
+# refit the model on the full data
+bestfit_reg <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset,nvmax=8)
+coef(bestfit_reg,1)
+```
+
+#question 3
+
+```{r}
+val_errors5 <- NULL
+
+for (i in 1:5) {
+  set.seed(i) # generate random seeds
+  train <- sample(c(TRUE,FALSE),nrow(wimd_dataset),rep=TRUE,prob=c(0.5,0.5))
+  # generate training sets
+  test <- (!train) # generate test set
+  fit.reg <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset[train,],nvmax=8)
+  test.matrix <- model.matrix(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset[test,])
+  for(i in 1:8){
+    coefi <- coef(fit.reg,id=i) # extract the coefficients from model with different sizes
+    pred <- test.matrix[,names(coefi)]%*%coefi
+      # make predictions by multiplying the test matirx and the coefficients vector
+    val_errors[i] <- mean((wimd_dataset$V1[test]-pred)^2) # compute the test MSE
+    }
+  val_errors5 <- rbind(val_errors5,val_errors)
+}
+
+# refit the model on the full data
+bestfit_reg <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset,nvmax=8)
+
+# the 1st training set
+which.min(val_errors5[1,])
+# refit the model on the full data
+coef(bestfit_reg,6)
+
+# the 2nd training set
+which.min(val_errors5[2,])
+# refit the model on the full data
+coef(bestfit_reg,4)
+
+# the 3rd training set
+which.min(val_errors5[3,])
+# refit the model on the full data
+coef(bestfit_reg,8)
+
+# the 4th training set
+which.min(val_errors5[4,])
+# refit the model on the full data
+coef(bestfit_reg,1)
+
+# the 5th training set
+which.min(val_errors5[5,])
+# refit the model on the full data
+coef(bestfit_reg,5)
+```
+
+#question 4
+```{r}
+# set seeds
+set.seed(2024)
+
+# length of data set
+dim(wimd_dataset)
+# set n = 113
+n <- 113
+# allocates n observations
+loocv <- rep(1:n)
+# create matrix to store the results
+loocv_error <- matrix(NA,n,8,dimnames=list(NULL,paste(1:8)))
+
+# a for loop to performs cross-validation
+predict.regsubsets <- function(object,newdata,id,...)
+{
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form,newdata)
+  coefi <- coef(object,id=id)
+  xvars <- names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+for (j in 1:113) {
+  bestfit <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset[loocv!=j,],nvmax=8)
+  # generate best subset selection based on the whole data set, except the jth single observation
+  for(i in 1:8)
+  {
+    pred <- predict(bestfit,wimd_dataset[loocv==j,],id=i)
+    # prediction of the current jth single observation on the i predictor
+    loocv_error[j,i] <- mean((wimd_dataset$V1[loocv==j]-pred)^2)
+    # compute MSE, and store them in loocv_error
+  }
+}
+
+# calculate the mean of all observations for each model size
+mean_loocv_error <- apply(loocv_error,2,mean)
+mean_loocv_error
+# calculate the minimum value of mean_loocv_error
+min <- which.min(mean_loocv_error)
+# plot the LOOCV error
+par(mfrow=c(1,1))
+plot(mean_loocv_error,type="b")
+points(min, mean_loocv_error[min][1], col = "green", cex = 2, pch = 20)
+# perform best subset selection (6-variables) on the full data set
+bestfit_reg <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset,nvmax=8)
+coef(bestfit_reg,6)
+```
+#question 5
+```{r}
+# set up k=5 folds
+k <- 5
+# set seeds
+set.seed(2023)
+# allocates each observation to one of k = 5 folds
+kfold <- sample(1:k,nrow(wimd_dataset),replace=TRUE)
+# create matrix to store the results
+kfold_error <- matrix(NA,k,8,dimnames=list(NULL,paste(1:8)))
+
+# a for loop to performs cross-validation
+predict.regsubsets <- function(object,newdata,id,...)
+{
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form,newdata)
+  coefi <- coef(object,id=id)
+  xvars <- names(coefi)
+  mat[,xvars]%*%coefi
+}
+for(j in 1:k)
+{
+  bestfit <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset[kfold!=j,],nvmax=8)
+  # generate best subset selection based on the whole data set, except the jth fold
+  for(i in 1:8)
+  {
+    pred <- predict.regsubsets(bestfit,wimd_dataset[kfold==j,],id=i)
+    # prediction of the current fold on the i predictor
+    kfold_error[j,i] <- mean((wimd_dataset$V1[kfold==j]-pred)^2)
+    # compute MSE, and store them in kfold_error
+  }
+}
+
+
+# calculate the mean of all folds for each model size
+mean_kfold_error <- apply(kfold_error,2,mean)
+mean_kfold_error
+# calculate the minimum value of mean_kfold_error
+min <- which.min(mean_kfold_error)
+# plot the cross-validation error
+par(mfrow=c(1,1))
+plot(mean_kfold_error,type="b")
+points(min, mean_kfold_error[min][1], col = "green", cex = 2, pch = 20)
+
+# perform best subset selection (2-variables) on the full data set
+bestfit_reg <- regsubsets(V1~V2+V3+V4+V5+V6+V7+V8+V9,data=wimd_dataset,nvmax=8)
+coef(bestfit_reg,2)
+```
+
+# question 6
+```{r}
+library(tree)
+# set a random seed
+set.seed(2025)
+# set N equal to the number of columns of data set
+N <- dim(wimd_dataset)[1]
+# create a data set corresponding only to the train set
+train6 <- sample(c(TRUE,FALSE),N,rep=TRUE)
+# fit a tree on the training data
+tree_wimd <- tree(V1~V2+V3+V4+V5+V6+V7+V8+V9,wimd_dataset,subset=train6)
+summary(tree_wimd)
+# plot the tree
+plot(tree_wimd)
+text(tree_wimd,pretty=0)
+
+# try to pruning the tree
+cv_wimd <- cv.tree(tree_wimd)
+plot(cv_wimd$size,cv_wimd$dev,type='b')
+
+# make predictions on the test set
+yhat <- predict(tree_wimd,newdata=wimd_dataset[-train6,])
+wimd_test <- as.numeric(unlist(wimd_dataset[-train6,"V1"]))
+plot(yhat,wimd_test)
+abline(0,1)
+# calculate the test set MSE
+mean((yhat-wimd_test)^2)
+
+```
+

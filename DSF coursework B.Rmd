@@ -1,0 +1,166 @@
+---
+title: "DSF coursework B"
+output: html_document
+date: "2022-12-30"
+---
+# question 1
+```{r}
+# get directory
+getwd()
+# load packages
+library(haven)
+# read data set
+eurojobs <- read_stata("eurojobs2.dta")
+# Look at data structure
+summary(eurojobs)
+# look at the top 5 lines of data set
+head(eurojobs)
+```
+```{r}
+# transpose the rows and columns
+transpose <- t(as.matrix(eurojobs))
+# remove the countryname and group2 row
+transpose <- transpose[2:10,]
+# calculate distances
+distance <- dist(transpose)
+# hierarchical cluster analysis
+hca <- hclust(d = distance, method = "average")
+# plot dendrogram
+plot(hca) 
+```
+
+
+```{r}
+# check the height of cluster
+summary(hca)
+# plot the fusion level value
+plot(hca$height, nrow(transpose):2, type="S", xlab="h(node height)", ylab="k(number of clusters)", col="grey", lwd=2, main="Fusion Levels")
+text(hca$height, nrow(transpose):2, nrow(transpose):2, col="red", cex=0.8)
+# Look up the distance between different nodes
+hca$height
+# decide to cut the tree to 2 parts
+group2 <- cutree(hca, k = 2)
+# visualize cluster size
+pie(table(group2), labels = paste("n =", table(group2)))
+title("Hierarchical cluster solution (average method)")
+
+```
+```{r}
+
+library(dendextend)
+library(RColorBrewer)
+# define the cluster tree
+tree <- as.dendrogram(hca)
+# Split into two clusters
+clus <- cutree(tree, 2)
+# set colors
+colors <- brewer.pal(n=2, name="Set1")
+# Coloring function
+colLab=function(n) {
+  if (is.leaf(n)) {
+    a=attributes(n)
+    labCol=colors[clus[which(names(clus)==a$label)]]
+    attr(n, "nodePar")=c(a$nodePar, lab.col=labCol)
+  }
+  n
+}
+# Color according to clustering results
+clusDendro <- dendrapply(tree, colLab)
+# plot after the cluster
+plot(clusDendro, main="UPGMA Tree", type="rectangle", horiz=TRUE)
+```
+
+# 没用
+```{r}
+# k-mean
+set.seed(2022)  # for reproducability
+kmean1 <- kmeans(distance, centers = 2, nstart = 10)  #10 random starts to
+                                                     #avoid local minima
+pie(table(kmean1$cluster), labels = paste("n =", table(kmean1$cluster)))
+title("K-means cluster solution")
+cluster::clusplot(distance, clus = kmean1$cluster, diss = TRUE) #cluster plot using PCA, 
+                                                               #kmeans solution
+
+table(group2, kmean1$cluster)
+
+#install.packages("fpc")
+library(fpc) # contains the function cluster.stats: it calculates most available cluster 
+             # quality statistics.
+max.k <- 5 ## maximum number of clusters
+group <- cutree(hca,2:max.k)
+
+## use a loop to construct continuous calls to cluster.stats
+for (i in 1:(max.k-1)){
+    ## we drop the silhouette criterion to save computation time 
+    call <- paste("clustat",i+1,"<- cluster.stats(distance, group[,",i,"], silhouette = FALSE)", sep = "")
+    eval(parse(text = call)) #evaluates the text string containing an R-command.
+}
+
+ls(pattern = "clustat")                 #check the creation of the objects
+
+## Extract the within cluster sum of squares
+wss <- numeric(length = 0) #object (numeric vector) to hold WSS's
+for (i in 1:(max.k-1)){
+    wss <- c(wss,eval(parse(text = paste("clustat",i+1,"$within.cluster.ss", 
+                                         sep = ""))))
+}
+## Extract the Calinski & Harabasz index
+ch <- numeric(length = 0) #object to hold CH-indices
+for (i in 1:(max.k-1)){
+    ch <- c(ch,eval(parse(text = paste("clustat",i+1,"$ch", sep = ""))))
+}
+
+plot(2:max.k, wss , type = "b", xlab = "Number of clusters", ylab = "Within-cluster sum of squares")
+plot(2:max.k, ch , type = "b", xlab = "Number of clusters", ylab = "Calinski & Harabasz index")
+rm(list = ls(pattern = "clustat"))             #remove clustat objects
+```
+
+# question 2
+
+```{r}
+#install.packages("rvest")
+require(rvest)
+#Specify the url for website to be scraped
+url <- "https://officialstatistics.com/news-blog/"
+
+#Reading the HTML code from the website
+webpage <- read_html(url)
+
+#Read specific data item from the html
+title_html <- html_nodes(webpage, 'h3')
+#transfer html to text
+title1 <- html_text(next_title_html)
+#Completing the blog title information
+for (i in 1:50){
+  urltemp <- paste(url,"?page=",i,sep="")
+  webpage <- read_html(urltemp)
+  next_title_html <- html_nodes(webpage,'h3')
+  next_title <- html_text(next_title_html)
+  title2 <- append(title1,next_title)
+  title3 <- gsub("\n  ","", title2)
+  title <- gsub("\n","", title3)
+}
+
+```
+
+
+```{r}
+#install.packages('jiebaR','jiebaRD','wordcloud2')
+library(jiebaR,jiebaRD) 
+library(wordcloud2)
+# Use functions to divide words
+mixseg <- worker("mix") 
+word <- segment(title,mixseg) 
+
+# calculate frequency
+freq <- as.data.frame(table(word)) 
+# Sort by frequency
+freq %>% arrange(desc(Freq))
+# delete the useless words
+freq %>% filter(., !word %in% c("with","and","in","to","the","a","can","Can","how"))
+# generate word cloud
+wordcloud2(freq,shape='star') 
+```
+
+
+
